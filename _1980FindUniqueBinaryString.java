@@ -1,4 +1,5 @@
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 1980. Find Unique Binary String
@@ -13,18 +14,17 @@ import java.util.*;
  * Input: nums = ["01","10"]
  * Output: "11"
  * Explanation: "11" does not appear in nums. "00" would also be correct.
- * <p>
  * Example 2:
  * <p>
  * Input: nums = ["00","01"]
  * Output: "11"
  * Explanation: "11" does not appear in nums. "10" would also be correct.
- * <p>
  * Example 3:
  * <p>
  * Input: nums = ["111","011","001"]
  * Output: "101"
  * Explanation: "101" does not appear in nums. "000", "010", "100", and "110" would also be correct.
+ * <p>
  * <p>
  * Constraints:
  * <p>
@@ -37,43 +37,76 @@ import java.util.*;
 public class _1980FindUniqueBinaryString {
 
     /**
-     * 将binary转为int，因为长度n的二进制数有2^n个，因此排序后找到不连续的就是结果
+     * Mutate first num with each bit, then exclude candidates with remained n-1 nums.
+     * Use binary search
+     * O(N^2logN)
      */
     public String findDifferentBinaryString(String[] nums) {
+        List<String> candidate = new ArrayList<>();
         int n = nums.length;
-        PriorityQueue<Integer> heap = new PriorityQueue<>();
-        for (String bin : nums) {
-            heap.add(binary2Int(bin));
+        if (n == 1) {
+            return nums[0].equals("0") ? "1" : "0";
         }
-        int cmp = 0;
-        while (!heap.isEmpty() && heap.peek() == cmp) {
-            cmp++;
-            heap.poll();
+
+        char[] origin = new char[n];
+        nums[0].getChars(0, n, origin, 0);
+        //Mutate first number, O(N)
+        for (int i = 0; i < n; i++) {
+            if (origin[i] == '1') {
+                origin[i] = '0';
+                candidate.add(String.valueOf(origin));
+                origin[i] = '1';
+            }
         }
-        return int2Binary(cmp, n);
+
+        for (int i = n - 1; i >= 0; i--) {
+            if (origin[i] == '0') {
+                origin[i] = '1';
+                candidate.add(String.valueOf(origin));
+                origin[i] = '0';
+            }
+        }
+
+        //O(N) nums with O(NlogN) avg test time
+        for (int i = 1; i < n; i++) {
+            //binary search, O(N) compare with O(logN) search
+            int idx = binarySearch(candidate, nums[i], n);
+            if (idx != -1) {
+                candidate.remove(idx);
+            }
+        }
+
+        return candidate.get(0);
+
     }
 
-    private int binary2Int(String bin) {
-        char[] c = bin.toCharArray();
-        int res = c[0] - '0';
-        for (int i = 1; i < c.length; i++) {
-            res *= 2;
-            res += c[i] - '0';
+    private int binarySearch(List<String> bins, String tgt, int n) {
+        int st = 0, ed = bins.size() - 1;
+        int mid;
+        while (st <= ed) {
+            mid = (st + ed) / 2;
+            int res = compareBinary(bins.get(mid), tgt, n);
+            if (res == 0)
+                return mid;
+            else {
+                if (res < 0) {
+                    st = mid + 1;
+                } else {
+                    ed = mid - 1;
+                }
+            }
         }
-        return res;
+        return -1;
     }
 
-    private String int2Binary(int num, int n) {
-        StringBuilder sb = new StringBuilder();
-        while (num != 0) {
-            sb.append(num % 2);
-            num /= 2;
+    private int compareBinary(String s1, String s2, int n) {
+        int i = 0;
+        while (i < n) {
+            if (s1.charAt(i) == s2.charAt(i))
+                i++;
+            else
+                break;
         }
-        while (sb.length() < n) {
-            sb.append(0);
-        }
-        return sb.reverse().toString();
+        return i == n ? 0 : (s1.charAt(i) - s2.charAt(i));
     }
-
-
 }
